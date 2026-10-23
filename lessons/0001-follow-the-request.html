@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Follow an HTTP 402 request</title><link rel="stylesheet" href="../assets/lesson.css"></head><body>
+<p>RUST · UBUNTU · TUTORIAL 1</p><h1>Follow one request</h1>
+<p>Your goal: run the example and explain why the same endpoint first returns 402 and then 200. This project uses an invented payment scheme and a public token. No funds move.</p>
+<div class="flow">Client GET → API 402 + challenge → client builds demo payload → client retries → API checks payload → 200 + protected data</div>
+<h2>1. Start the Ubuntu API</h2><p>In a terminal, change to the repository directory and run:</p><pre><code>docker compose up --build -d --wait api
+docker compose exec api curl -i http://127.0.0.1:3000/health
+docker compose exec api curl -i http://127.0.0.1:3000/premium</code></pre>
+<p>The curl commands run inside the API container. Look for <code>200</code> on the public health route and <code>402</code> on the premium route. The challenge is encoded in the response header and mirrored as readable JSON in the body.</p>
+<h2>2. Follow the Rust handler</h2><p>Open <code>src/lib.rs</code>. <code>app()</code> maps <code>GET /premium</code> to <code>premium()</code>. That handler reads <code>payment-signature</code>. With no header, it builds a challenge using <code>resource()</code> and <code>requirements()</code>, encodes it with Base64, and returns 402.</p>
+<p>If the header exists, the handler decodes Base64, parses JSON into <code>DemoPayment</code>, and checks version, resource, selected terms, and the token. Every check must pass before returning the protected data.</p>
+<h2>3. Let the client retry</h2><pre><code>docker compose run --build --rm demo</code></pre><p>The Bash script in <code>scripts/demo.sh</code> makes the unpaid request, reads the challenge header, and uses jq to copy its resource and first payment option into a retry payload. It adds the demo token, encodes the payload, and retries. Observe the final 200.</p>
+<h2>4. Predict, then test</h2><p>What happens if the retry header is not valid Base64?</p><pre><code>docker compose exec api curl -i -H "PAYMENT-SIGNATURE: invalid" http://127.0.0.1:3000/premium</code></pre><details><summary>Reveal expected result</summary><p>402 again. The decoding chain produces no valid DemoPayment, so the server returns a fresh challenge without protected data.</p></details>
+<p>Why would knowing the demo token let anyone unlock the resource?</p><details><summary>Reveal explanation</summary><p>The check compares public strings and JSON values. There is no private signing key or blockchain verification. Base64 adds no authenticity.</p></details>
+<h2>5. Check and stop</h2><pre><code>docker compose run --build --rm checks
+docker compose down</code></pre><p>The checks container runs formatting, four lifecycle tests, and Clippy. The API runs continuously; demo and checks are temporary containers.</p>
+<p>Keep the <a href="../reference/0001-command-and-code-map.html">command and code reference</a> nearby. For protocol details, read the primary <a href="https://github.com/x402-foundation/x402/blob/main/specs/transports-v2/http.md">HTTP transport specification</a>.</p><p>Ask your agent follow-up questions about any line or result you do not understand. A useful checkpoint: explain the difference between the challenge header and the retry header without looking at the code.</p>
+</body></html>

@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    ports:
+      - "127.0.0.1:3000:3000"
+    init: true
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3000/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  demo:
+    build:
+      context: .
+      target: runtime
+    profiles: ["tools"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BASE_URL: http://api:3000
+    command: ["bash", "/app/scripts/demo.sh"]
+
+  checks:
+    build:
+      context: .
+      target: development
+    profiles: ["tools"]
+    command: ["bash", "-c", "cargo fmt --check && cargo test --locked && cargo clippy --locked --all-targets -- -D warnings"]

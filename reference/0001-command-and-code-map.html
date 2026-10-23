@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HTTP 402 reference</title><link rel="stylesheet" href="../assets/lesson.css"></head><body><h1>Commands and code map</h1>
+<pre><code>docker compose up --build -d --wait api  # build and start API
+docker compose run --build --rm demo    # run client in Ubuntu
+docker compose run --build --rm checks  # format, tests, Clippy
+docker compose exec api bash           # explore running Ubuntu
+docker compose logs api                # view server output
+docker compose down                    # stop project containers</code></pre>
+<h2>Code map</h2><p><code>Dockerfile</code>: Ubuntu development tools → compiled release binary → Ubuntu runtime. <code>compose.yaml</code>: services and networking. <code>main.rs</code>: listener and shutdown. <code>lib.rs</code>: routes and demo payment checks. <code>demo.sh</code>: unpaid request, decode challenge, build payload, retry. <code>tests/lifecycle.rs</code>: rejection and success checks.</p>
+<h2>Vocabulary</h2><p><strong>Challenge:</strong> payment requirements advertised by the server. <strong>Authorization:</strong> payload submitted by the client; simulated here. <strong>Settlement:</strong> actual execution of payment; absent here. <strong>Base64:</strong> reversible encoding, without authentication or encryption.</p>
+<p><code>PAYMENT-REQUIRED</code> goes server → client; <code>PAYMENT-SIGNATURE</code> goes client → server. Header names are case-insensitive.</p><p>Inside the demo container, <code>api</code> is the API service hostname. Inside the API container, <code>127.0.0.1</code> refers to that container. On the host, port 3000 forwards to the API container.</p><p><a href="../lessons/0001-follow-the-request.html">Back to the lesson</a> · <a href="https://github.com/x402-foundation/x402/blob/main/specs/transports-v2/http.md">Primary HTTP transport reference</a></p></body></html>
